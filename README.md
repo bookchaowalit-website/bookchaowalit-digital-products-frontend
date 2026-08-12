@@ -1,11 +1,18 @@
-# bookchaowalit-digital-products-frontend
+# Digital Products
 
-Portfolio project: **digital-products** — part of the 101 Projects challenge.
+Digital goods storefront with local cart.
 
-Live: https://digital-products.bookchaowalit.com
+## Features
+- Interactive demo
 
-## Related
+## Limitations
+- Not production ML/SaaS
 
-- **Mobile App:** [bookchaowalit-digital-products-mobile](https://github.com/bookchaowalit-mobile/bookchaowalit-digital-products-mobile)
-- **Portfolio:** [bookchaowalit.com](https://bookchaowalit.com)
+## Run
+```bash
+npm install
+npm run dev
+```
 
+## Honesty
+Portfolio demo. Not multi-tenant SaaS. Prefer local-only state over fake production claims.
