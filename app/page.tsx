@@ -1,135 +1,88 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 
-function Shell({
-  title,
-  subtitle,
-  badge = "Portfolio demo · local-only",
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  badge?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-100">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <header className="mb-8">
-          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{badge}</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">{subtitle}</p>
-        </header>
-        {children}
-        <footer className="mt-10 border-t border-zinc-200 pt-4 text-xs text-zinc-500 dark:border-zinc-800">
-          Honest demo: no multi-tenant backend. State (if any) stays in this browser.
-        </footer>
-      </div>
-    </div>
-  );
-}
+type Product = { id: string; code: string; name: string; price: number; blurb: string; detail: string };
 
-function Button({
-  children,
-  onClick,
-  variant = "primary",
-  disabled,
-  type = "button",
-  className = "",
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-  variant?: "primary" | "secondary" | "ghost" | "danger";
-  disabled?: boolean;
-  type?: "button" | "submit";
-  className?: string;
-}) {
-  const base =
-    "inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-50 " +
-    className;
-  const styles =
-    variant === "primary"
-      ? "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
-      : variant === "secondary"
-        ? "bg-white text-zinc-900 ring-1 ring-zinc-200 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700"
-        : variant === "danger"
-          ? "bg-red-600 text-white hover:bg-red-500"
-          : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900";
-  return (
-    <button type={type} disabled={disabled} onClick={onClick} className={`${base} ${styles}`}>
-      {children}
-    </button>
-  );
-}
-
-const inputClass =
-  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950";
-
-function useLocalStorage<T>(key: string, initial: T) {
-  const [value, setValue] = useState<T>(initial);
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw != null) setValue(JSON.parse(raw) as T);
-    } catch {
-      /* ignore */
-    }
-    setReady(true);
-  }, [key]);
-  useEffect(() => {
-    if (!ready) return;
-    localStorage.setItem(key, JSON.stringify(value));
-  }, [key, value, ready]);
-  return [value, setValue] as const;
-}
-
-function uid() {
-  return crypto.randomUUID();
-}
-
-async function copyText(text: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-
-type Product = { id: string; name: string; price: number; blurb: string };
 const PRODUCTS: Product[] = [
-  { id: "1", name: "Icon pack", price: 290, blurb: "120 SVG icons" },
-  { id: "2", name: "Notion OS kit", price: 490, blurb: "Templates for solopreneurs" },
-  { id: "3", name: "UI checklist PDF", price: 150, blurb: "Ship-quality UI pass" },
+  { id: "icons", code: "ED-01", name: "Icon pack", price: 290, blurb: "120 SVG icons", detail: "A crisp working set for interfaces that need fewer decisions." },
+  { id: "notion", code: "ED-02", name: "Notion OS kit", price: 490, blurb: "Templates for solopreneurs", detail: "A practical operating shelf for projects, notes, and weekly resets." },
+  { id: "checklist", code: "ED-03", name: "UI checklist PDF", price: 150, blurb: "Ship-quality UI pass", detail: "A compact preflight sheet for the last ten minutes before release." },
 ];
+
+function money(value: number) {
+  return `฿${value.toLocaleString("en-US")}`;
+}
+
 export default function Home() {
-  const [cart, setCart] = useLocalStorage<string[]>("digital-products-cart-v1", []);
-  const total = cart.reduce((a, id) => a + (PRODUCTS.find((p) => p.id === id)?.price || 0), 0);
+  const [cart, setCart] = useState<string[]>([]);
+  const [notice, setNotice] = useState("The checkout is intentionally offline.");
+  const total = useMemo(() => cart.reduce((sum, id) => sum + (PRODUCTS.find((product) => product.id === id)?.price ?? 0), 0), [cart]);
+
+  const addToCart = (product: Product) => {
+    setCart((items) => [...items, product.id]);
+    setNotice(`${product.name} added to the local order slip.`);
+  };
+
+  const removeOne = (id: string) => {
+    setCart((items) => {
+      const index = items.indexOf(id);
+      return index === -1 ? items : [...items.slice(0, index), ...items.slice(index + 1)];
+    });
+    setNotice("One line removed from the local order slip.");
+  };
+
   return (
-    <Shell title="Digital Products" subtitle="Browse demo digital goods and add them to a local cart. Checkout is intentionally not connected.">
-      <div className="grid gap-3 sm:grid-cols-3">
-        {PRODUCTS.map((p) => (
-          <article key={p.id} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="font-medium">{p.name}</h2>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{p.blurb}</p>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="font-mono">฿{p.price}</span>
-              <Button onClick={() => setCart((c) => [...c, p.id])}>Add</Button>
-            </div>
-          </article>
-        ))}
-      </div>
-      <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <h2 className="font-medium">Cart ({cart.length})</h2>
-        <p className="mt-1 font-mono text-lg">฿{total}</p>
-        <div className="mt-2 flex gap-2">
-          <Button variant="secondary" onClick={() => setCart([])}>Clear</Button>
-          <Button disabled>Checkout (disabled)</Button>
+    <main className="dp-page">
+      <header className="dp-masthead">
+        <Link className="dp-mark" href="/">BOOKCHAOWALIT / EDITIONS</Link>
+        <span>LOCAL SHELF / 03 GOODS</span>
+        <span className="dp-masthead-state"><i /> CHECKOUT OFFLINE</span>
+      </header>
+
+      <section className="dp-hero">
+        <div className="dp-hero-copy">
+          <p className="dp-kicker">A small digital goods counter</p>
+          <h1>Good files,<br /><em>ready to leave</em> the shelf.</h1>
+          <p className="dp-intro">A focused storefront for useful digital things. Pick an edition, read its note, and place it on a browser-only order slip.</p>
+          <div className="dp-proof"><span>01</span><p>Every item is a portfolio sample. No payment, account, or delivery claim is hiding behind the button.</p></div>
         </div>
-      </div>
-    </Shell>
+
+        <aside className="dp-slip" aria-live="polite">
+          <div className="dp-slip-head"><span>ORDER SLIP / LOCAL</span><b>{String(cart.length).padStart(2, "0")}</b></div>
+          <div className="dp-slip-body">
+            {cart.length === 0 ? <p className="dp-slip-empty">Nothing selected.<br />The slip is waiting.</p> : (
+              <ul className="dp-slip-list">
+                {PRODUCTS.map((product) => {
+                  const quantity = cart.filter((id) => id === product.id).length;
+                  return quantity > 0 ? <li key={product.id}><span>{quantity} × {product.name}</span><b>{money(product.price * quantity)}</b><button type="button" onClick={() => removeOne(product.id)} aria-label={`Remove one ${product.name}`}>−</button></li> : null;
+                })}
+              </ul>
+            )}
+          </div>
+          <div className="dp-slip-total"><span>LOCAL TOTAL</span><strong>{money(total)}</strong></div>
+          <button type="button" className="dp-checkout" disabled>CHECKOUT UNAVAILABLE <span>DEMO</span></button>
+          <p className="dp-notice" role="status">{notice}</p>
+        </aside>
+      </section>
+
+      <section className="dp-editions" aria-labelledby="editions-title">
+        <div className="dp-section-line"><span>02 / THE SHELF</span><span>USEFUL THINGS, CLEARLY LABELED</span></div>
+        <div className="dp-section-intro"><h2 id="editions-title">Pick an edition.</h2><p>Each line has a job before it has a price.</p></div>
+        <div className="dp-edition-list">
+          {PRODUCTS.map((product) => {
+            const quantity = cart.filter((id) => id === product.id).length;
+            return <article className={`dp-edition ${quantity ? "is-selected" : ""}`} key={product.id}>
+              <div className="dp-edition-code"><span>{product.code}</span><i>{quantity ? `IN SLIP ×${quantity}` : "AVAILABLE"}</i></div>
+              <div className="dp-edition-copy"><h3>{product.name}</h3><p>{product.detail}</p><small>{product.blurb}</small></div>
+              <div className="dp-edition-action"><strong>{money(product.price)}</strong><button type="button" onClick={() => addToCart(product)}>{quantity ? "Add one more" : "Add to slip"}<span aria-hidden="true">↗</span></button></div>
+            </article>;
+          })}
+        </div>
+      </section>
+
+      <footer className="dp-footer"><strong>THE SHELF IS SMALL ON PURPOSE.</strong><span>Local state only · Bookchaowalit · 2026</span></footer>
+    </main>
   );
 }
